@@ -1,11 +1,15 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageListView", "ImageListView\ImageListView.csproj", "{0C295FB8-C6C6-4A40-9F19-05A43F353A04}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageListViewDemo", "ImageListViewDemo\ImageListViewDemo.csproj", "{A4FCA838-02E1-4C57-B0C0-8A6734657C47}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageListViewTests", "ImageListViewTests\ImageListViewTests.csproj", "{4FA5D0DA-8D80-49FE-BC54-299CC9A47ACA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComponentFactory.Krypton.Toolkit", "..\..\Developpement\Krypton Components\Main\Source\Krypton Components\ComponentFactory.Krypton.Toolkit\ComponentFactory.Krypton.Toolkit.csproj", "{96ECAECC-54F8-4AA5-8591-B443C2D9565F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +43,14 @@ Global
 		{4FA5D0DA-8D80-49FE-BC54-299CC9A47ACA}.Release without WIC|Any CPU.Build.0 = Release|Any CPU
 		{4FA5D0DA-8D80-49FE-BC54-299CC9A47ACA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FA5D0DA-8D80-49FE-BC54-299CC9A47ACA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Debug Designer|Any CPU.ActiveCfg = Debug|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Debug Designer|Any CPU.Build.0 = Debug|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Release without WIC|Any CPU.ActiveCfg = Release|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Release without WIC|Any CPU.Build.0 = Release|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96ECAECC-54F8-4AA5-8591-B443C2D9565F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

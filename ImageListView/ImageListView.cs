@@ -22,6 +22,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Resources;
 using System.Reflection;
+using ComponentFactory.Krypton.Toolkit;
 
 namespace Manina.Windows.Forms
 {
@@ -57,6 +58,16 @@ namespace Manina.Windows.Forms
         /// Selection tolerance for left-pane border.
         /// </summary>
         internal const int PaneBorderSize = 4;
+		///// jdhsoftware -s
+  //      /// <summary>
+  //      /// Creates a control with a border.
+  //      /// </summary>
+  //      private const int WS_BORDER = 0x00800000;
+  //      /// <summary>
+  //      /// Specifies that the control has a border with a sunken edge.
+  //      /// </summary>
+  //      private const int WS_EX_CLIENTEDGE = 0x00000200;
+		///// jdhsoftware -end
         #endregion
 
         #region Member Variables
@@ -130,6 +141,17 @@ namespace Manina.Windows.Forms
 
         // Resource manager
         private ResourceManager resources;
+		
+		/// jdhsoftware
+        internal IPalette _palette;
+        internal PaletteRedirect _paletteRedirect;
+        internal PaletteBackInheritRedirect _paletteBack;
+        internal PaletteBorderInheritRedirect _paletteBorder;
+        internal PaletteContentInheritRedirect _paletteContent;
+        internal IDisposable _mementoContent;
+        internal IDisposable _mementoBack1;
+        internal IDisposable _mementoBack2;
+
         #endregion
 
         #region Properties
@@ -858,6 +880,25 @@ namespace Manina.Windows.Forms
         {
             get { return (mView == View.Gallery ? ScrollOrientation.HorizontalScroll : ScrollOrientation.VerticalScroll); }
         }
+
+		///// jdhsoftware
+  //      /// <summary>
+  //      /// Gets the required creation parameters when the control handle is created.
+  //      /// </summary>
+  //      protected override CreateParams CreateParams
+  //      {
+  //          get
+  //          {
+  //              CreateParams p = base.CreateParams;
+  //              p.Style &= ~WS_BORDER;
+  //              p.ExStyle &= ~WS_EX_CLIENTEDGE;
+  //              if (mBorderStyle == BorderStyle.Fixed3D)
+  //                  p.ExStyle |= WS_EX_CLIENTEDGE;
+  //              else if (mBorderStyle == BorderStyle.FixedSingle)
+  //                  p.Style |= WS_BORDER;
+  //              return p;
+  //          }
+  //      }
         #endregion
 
         #region Custom Property Serializers
@@ -1068,8 +1109,57 @@ namespace Manina.Windows.Forms
             metadataCache = new ImageListViewCacheMetadata(this);
 
             disposed = false;
+
+            // Cache the current global palette setting
+            _palette = KryptonManager.CurrentGlobalPalette;
+
+            // Hook into palette events
+            if (_palette != null)
+                _palette.PalettePaint += new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
+
+            // We want to be notified whenever the global palette changes
+            KryptonManager.GlobalPaletteChanged += new EventHandler(OnGlobalPaletteChanged);
+
+            // Create redirection object to the base palette
+            _paletteRedirect = new PaletteRedirect(_palette);
+
+            // Create accessor objects for the back, border and content
+            _paletteBack = new PaletteBackInheritRedirect(_paletteRedirect);
+            _paletteBorder = new PaletteBorderInheritRedirect(_paletteRedirect);
+            _paletteContent = new PaletteContentInheritRedirect(_paletteRedirect);
+
+            this.Font = _palette.GetContentShortTextFont(PaletteContentStyle.ButtonStandalone, PaletteState.Normal);
+        }
+
+        private void OnGlobalPaletteChanged(object sender, EventArgs e)
+        {
+            // Unhook events from old palette
+            if (_palette != null)
+                _palette.PalettePaint -= new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
+
+            // Cache the new IPalette that is the global palette
+            _palette = KryptonManager.CurrentGlobalPalette;
+            _paletteRedirect.Target = _palette;
+
+            // Hook into events for the new palette
+            if (_palette != null)
+                _palette.PalettePaint += new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
+
+            // Change of palette means we should repaint to show any changes
+            Invalidate();
         }
         #endregion
+
+        /// <summary>
+        /// Called when [palette paint].
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="ComponentFactory.Krypton.Toolkit.PaletteLayoutEventArgs" /> instance containing the event data.</param>
+        public void OnPalettePaint(object sender, PaletteLayoutEventArgs e)
+        {
+            // Palette indicates we might need to repaint, so lets do it
+            Invalidate();
+        }
 
         #region Select/Check
         /// <summary>
@@ -1960,6 +2050,35 @@ namespace Manina.Windows.Forms
                     navigationManager.Dispose();
                     if (mRenderer != null)
                         mRenderer.Dispose();
+
+                    //Dispose Krypton thingies
+                    if (_mementoContent != null)
+                    {
+                        _mementoContent.Dispose();
+                        _mementoContent = null;
+                    }
+
+                    if (_mementoBack1 != null)
+                    {
+                        _mementoBack1.Dispose();
+                        _mementoBack1 = null;
+                    }
+
+                    if (_mementoBack2 != null)
+                    {
+                        _mementoBack2.Dispose();
+                        _mementoBack2 = null;
+                    }
+
+                    // Unhook from the palette events
+                    if (_palette != null)
+                    {
+                        _palette.PalettePaint -= new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
+                        _palette = null;
+                    }
+
+                    // Unhook from the static events, otherwise we cannot be garbage collected
+                    KryptonManager.GlobalPaletteChanged -= new EventHandler(OnGlobalPaletteChanged);
                 }
 
                 disposed = true;

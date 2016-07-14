@@ -524,6 +524,8 @@ namespace Manina.Windows.Forms
                 extension = Path.GetExtension(filename);
                 if (string.IsNullOrEmpty(text))
                     mText = Path.GetFileName(filename);
+                else
+                    mText = text;
             }
             else if (string.IsNullOrEmpty(text))
             {
