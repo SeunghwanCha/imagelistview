@@ -302,12 +302,7 @@ namespace Manina.Windows.Forms
                     throw new InvalidOperationException("Cannot calculate column width. Owner image list view is null.");
 
                 int width = 0;
-                if (mType == ColumnType.Rating)
-                {
-                    if (mImageListView.RatingImage != null)
-                        width = mImageListView.RatingImage.Width * 5;
-                }
-                else if (mType == ColumnType.Custom)
+                if (mType == ColumnType.Custom)
                 {
                     foreach (ImageListViewItem item in mImageListView.Items)
                     {

@@ -22,6 +22,7 @@ using System.Collections;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace Manina.Windows.Forms
 {
@@ -244,8 +245,20 @@ namespace Manina.Windows.Forms
             /// <param name="adaptor">The adaptor associated with this item.</param>
             public void Add(object key, string text, Image initialThumbnail, ImageListView.ImageListViewItemAdaptor adaptor)
             {
+                Type mType = key.GetType();
+
                 ImageListViewItem item = new ImageListViewItem(key, text);
                 item.clonedThumbnail = initialThumbnail;
+                item.Name = mType.GetProperty("ClipName").GetValue(key,null).ToString();
+                item.MediaType = mType.GetProperty("MediaTypeStr").GetValue(key, null).ToString();
+                item.MediaDuration = uint.Parse(mType.GetProperty("MediaDuration").GetValue(key, null).ToString());
+                item.MediaInfo = new Size(int.Parse(mType.GetProperty("MediaWidth").GetValue(key, null).ToString()), int.Parse(mType.GetProperty("MediaHeight").GetValue(key, null).ToString()));
+                item.MediaSize = long.Parse(mType.GetProperty("MediaSize").GetValue(key, null).ToString());
+                if (mType.GetProperty("MediaFullName").GetValue(key, null) != null)
+                    item.FilePath = mType.GetProperty("MediaFullName").GetValue(key, null).ToString();
+                item.FPS = float.Parse(mType.GetProperty("FPS").GetValue(key, null).ToString());
+                item.Tag = key;
+
                 Add(item, adaptor);
             }
             /// <summary>
@@ -554,10 +567,12 @@ namespace Manina.Windows.Forms
                     return false;
 
                 // Check if the file already exists
-                if (!string.IsNullOrEmpty(item.FileName) && !mImageListView.AllowDuplicateFileNames)
+                if (!string.IsNullOrEmpty(item.Name) && !mImageListView.AllowDuplicateFileNames)
                 {
-                    if (mItems.Exists(a => string.Compare(a.FileName, item.FileName, StringComparison.OrdinalIgnoreCase) == 0))
+                    if (mItems.Exists(a => string.Compare(a.Name, item.Name, StringComparison.OrdinalIgnoreCase) == 0 && string.Compare(a.MediaType, item.MediaType, StringComparison.OrdinalIgnoreCase) == 0))
+                    {
                         return false;
+                    }
                 }
                 item.owner = this;
                 item.mAdaptor = adaptor;
@@ -602,21 +617,7 @@ namespace Manina.Windows.Forms
 
                 // Add to details cache
                 mImageListView.metadataCache.Add(item.Guid, item.Adaptor, item.VirtualItemKey,
-                    (mImageListView.UseWIC == UseWIC.Auto || mImageListView.UseWIC == UseWIC.DetailsOnly));
-
-                // Add to shell info cache
-                string extension = item.extension;
-                if (!string.IsNullOrEmpty(extension))
-                {
-                    CacheState state = mImageListView.shellInfoCache.GetCacheState(extension);
-                    if (state == CacheState.Error && mImageListView.RetryOnError == true)
-                    {
-                        mImageListView.shellInfoCache.Remove(extension);
-                        mImageListView.shellInfoCache.Add(extension);
-                    }
-                    else if (state == CacheState.Unknown)
-                        mImageListView.shellInfoCache.Add(extension);
-                }
+                    (mImageListView.UseWIC == UseWIC.Auto || mImageListView.UseWIC == UseWIC.DetailsOnly));                
 
                 // Update groups
                 if (mImageListView.showGroups)
@@ -890,76 +891,20 @@ namespace Manina.Windows.Forms
                         {
                             switch (mSortColumn.Type)
                             {
-                                case ColumnType.DateAccessed:
-                                    result = DateTime.Compare(x.DateAccessed, y.DateAccessed);
-                                    break;
-                                case ColumnType.DateCreated:
-                                    result = DateTime.Compare(x.DateCreated, y.DateCreated);
-                                    break;
-                                case ColumnType.DateModified:
-                                    result = DateTime.Compare(x.DateModified, y.DateModified);
-                                    break;
-                                case ColumnType.Dimensions:
-                                    long ax = x.Dimensions.Width * x.Dimensions.Height;
-                                    long ay = y.Dimensions.Width * y.Dimensions.Height;
-                                    result = (ax < ay ? -1 : (ax > ay ? 1 : 0));
-                                    break;
-                                case ColumnType.FileName:
-                                    result = CompareStrings(x.FileName, y.FileName, natural);
-                                    break;
-                                case ColumnType.FilePath:
-                                    result = CompareStrings(x.FilePath, y.FilePath, natural);
-                                    break;
-                                case ColumnType.FileSize:
-                                    result = (x.FileSize < y.FileSize ? -1 : (x.FileSize > y.FileSize ? 1 : 0));
-                                    break;
-                                case ColumnType.FileType:
-                                    result = CompareStrings(x.FileType, y.FileType, natural);
-                                    break;
                                 case ColumnType.Name:
-                                    result = CompareStrings(x.Text, y.Text, natural);
+                                    result = CompareStrings(x.Name, y.Name, natural);
                                     break;
-                                case ColumnType.Resolution:
-                                    float rx = x.Resolution.Width * x.Resolution.Height;
-                                    float ry = y.Resolution.Width * y.Resolution.Height;
-                                    result = (rx < ry ? -1 : (rx > ry ? 1 : 0));
+                                case ColumnType.MediaType:
+                                    result = CompareStrings(x.MediaType, y.MediaType, natural);
                                     break;
-                                case ColumnType.ImageDescription:
-                                    result = CompareStrings(x.ImageDescription, y.ImageDescription, natural);
+                                case ColumnType.UsageCount:
+                                    result = (x.UsageCount < y.UsageCount ? -1 : (x.UsageCount > y.UsageCount ? 1 : 0));
                                     break;
-                                case ColumnType.EquipmentModel:
-                                    result = CompareStrings(x.EquipmentModel, y.EquipmentModel, natural);
-                                    break;
-                                case ColumnType.DateTaken:
-                                    result = DateTime.Compare(x.DateTaken, y.DateTaken);
-                                    break;
-                                case ColumnType.Artist:
-                                    result = CompareStrings(x.Artist, y.Artist, natural);
-                                    break;
-                                case ColumnType.Copyright:
-                                    result = CompareStrings(x.Copyright, y.Copyright, natural);
-                                    break;
-                                case ColumnType.ExposureTime:
-                                    result = (x.ExposureTime < y.ExposureTime ? -1 : (x.ExposureTime > y.ExposureTime ? 1 : 0));
-                                    break;
-                                case ColumnType.FNumber:
-                                    result = (x.FNumber < y.FNumber ? -1 : (x.FNumber > y.FNumber ? 1 : 0));
-                                    break;
-                                case ColumnType.ISOSpeed:
-                                    result = (x.ISOSpeed < y.ISOSpeed ? -1 : (x.ISOSpeed > y.ISOSpeed ? 1 : 0));
-                                    break;
-                                case ColumnType.UserComment:
-                                    result = CompareStrings(x.UserComment, y.UserComment, natural);
-                                    break;
-                                case ColumnType.Rating:
-                                    result = (x.Rating < y.Rating ? -1 : (x.Rating > y.Rating ? 1 : 0));
-                                    break;
-                                case ColumnType.Software:
-                                    result = CompareStrings(x.Software, y.Software, natural);
-                                    break;
-                                case ColumnType.FocalLength:
-                                    result = (x.FocalLength < y.FocalLength ? -1 : (x.FocalLength > y.FocalLength ? 1 : 0));
-                                    break;
+                                case ColumnType.MediaInfo:
+                                    long ax = x.MediaInfo.Width * x.MediaInfo.Height;
+                                    long ay = y.MediaInfo.Width * y.MediaInfo.Height;
+                                    result = (ax < ay ? -1 : (ax > ay ? 1 : 0));
+                                    break;                                
                                 case ColumnType.Custom:
                                     result = CompareStrings(x.GetSubItemText(mSortColumn.Guid), y.GetSubItemText(mSortColumn.Guid), natural);
                                     break;

@@ -84,7 +84,24 @@ namespace Manina.Windows.Forms
         Color mSelectionRectangleBorderColor;
         #endregion
 
+        Color mCompBackColor;
+        Color mCompForeColor;
+
         #region Properties
+        [Category("Appearance"), Description("Gets or sets the background color of the ImageListView control.")]
+        [DefaultValue(typeof(Color), "Window")]
+        public Color CompBackColor
+        {
+            get { return mCompBackColor; }
+            set { mCompBackColor = value; }
+        }
+        [Category("Appearance"), Description("Gets or sets the background color of the ImageListView control.")]
+        [DefaultValue(typeof(Color), "Window")]
+        public Color CompForeColor
+        {
+            get { return mCompForeColor; }
+            set { mCompForeColor = value; }
+        }
         /// <summary>
         /// Gets or sets the background color of the ImageListView control.
         /// </summary>
@@ -483,12 +500,14 @@ namespace Manina.Windows.Forms
         /// </summary>
         public ImageListViewColor()
         {
+            CompBackColor = Color.OrangeRed;
+            CompForeColor = Color.Black;
             // control
-            mControlBackColor = SystemColors.Window;
-            mDisabledBackColor = SystemColors.Control;
+            mControlBackColor = Color.FromArgb(50,50,50);
+            mDisabledBackColor = Color.Gainsboro;
 
             // item
-            mBackColor = SystemColors.Window;
+            mBackColor = Color.FromArgb(50, 50, 50);
             mForeColor = SystemColors.ControlText;
 
             mBorderColor = Color.FromArgb(64, SystemColors.GrayText);
@@ -498,14 +517,14 @@ namespace Manina.Windows.Forms
             mUnFocusedBorderColor = Color.FromArgb(128, SystemColors.GrayText);
             mUnFocusedForeColor = SystemColors.ControlText;
 
-            mHoverColor1 = Color.FromArgb(8, SystemColors.Highlight);
-            mHoverColor2 = Color.FromArgb(64, SystemColors.Highlight);
-            mHoverBorderColor = Color.FromArgb(64, SystemColors.Highlight);
+            mHoverColor1 = Color.FromArgb(8, 150, 150, 150);
+            mHoverColor2 = Color.FromArgb(64, 150, 150, 150);
+            mHoverBorderColor = Color.FromArgb(64, 150, 150, 150);
 
-            mSelectedColor1 = Color.FromArgb(16, SystemColors.Highlight);
-            mSelectedColor2 = Color.FromArgb(128, SystemColors.Highlight);
-            mSelectedBorderColor = Color.FromArgb(128, SystemColors.Highlight);
-            mSelectedForeColor = SystemColors.ControlText;
+            mSelectedColor1 = Color.FromArgb(16, 150 , 150 , 150);
+            mSelectedColor2 = Color.FromArgb(128, 150, 150, 150);
+            mSelectedBorderColor = Color.FromArgb(128, 150, 150, 150);
+            mSelectedForeColor = Color.YellowGreen;
 
             mDisabledColor1 = Color.FromArgb(0, SystemColors.GrayText);
             mDisabledColor2 = Color.FromArgb(32, SystemColors.GrayText);
@@ -519,16 +538,16 @@ namespace Manina.Windows.Forms
             mImageOuterBorderColor = Color.FromArgb(128, Color.Gray);
 
             // details view
-            mColumnHeaderBackColor1 = Color.FromArgb(32, SystemColors.Control);
-            mColumnHeaderBackColor2 = Color.FromArgb(196, SystemColors.Control);
-            mColumnHeaderHoverColor1 = Color.FromArgb(16, SystemColors.Highlight);
-            mColumnHeaderHoverColor2 = Color.FromArgb(64, SystemColors.Highlight);
-            mColumnHeaderForeColor = SystemColors.WindowText;
+            mColumnHeaderBackColor1 = Color.FromArgb(70, 70, 70);
+            mColumnHeaderBackColor2 = Color.FromArgb(70, 70, 70);
+            mColumnHeaderHoverColor1 = Color.FromArgb(90, 90, 90);
+            mColumnHeaderHoverColor2 = Color.FromArgb(90, 90, 90);
+            mColumnHeaderForeColor = Color.Gainsboro;
             mColumnSelectColor = Color.FromArgb(16, SystemColors.GrayText);
-            mColumnSeparatorColor = Color.FromArgb(32, SystemColors.GrayText);
-            mCellForeColor = SystemColors.ControlText;
-            mAlternateBackColor = SystemColors.Window;
-            mAlternateCellForeColor = SystemColors.ControlText;
+            mColumnSeparatorColor = Color.FromArgb(70,70,70);
+            mCellForeColor = Color.Gainsboro;
+            mAlternateBackColor = Color.FromArgb(50, 50, 50);
+            mAlternateCellForeColor = Color.Gainsboro;
 
             // image pane
             mPaneBackColor = Color.FromArgb(16, SystemColors.GrayText);

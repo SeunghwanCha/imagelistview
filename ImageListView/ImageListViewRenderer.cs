@@ -1044,7 +1044,10 @@ namespace Manina.Windows.Forms
                     using (Brush bItemBack = new SolidBrush(alternate && ImageListView.View == View.Details ?
                         ImageListView.Colors.AlternateBackColor : ImageListView.Colors.BackColor))
                     {
-                        g.FillRectangle(bItemBack, bounds);
+                        if (item.MediaType == "Composition")
+                            g.FillRectangle(new SolidBrush(ImageListView.Colors.CompBackColor), bounds);
+                        else
+                            g.FillRectangle(bItemBack, bounds);
                     }
                 }
                 else
@@ -1222,24 +1225,7 @@ namespace Manina.Windows.Forms
                                 rt.X += iconOffset;
                                 rt.Width -= iconOffset;
                                 // Rating stars
-                                if (column.Type == ColumnType.Rating && ImageListView.RatingImage != null && ImageListView.EmptyRatingImage != null)
-                                {
-                                    int rating = item.GetSimpleRating();
-                                    if (rating > 0)
-                                    {
-                                        int w = ImageListView.RatingImage.Width;
-                                        int y = (int)(rt.Top + (rt.Height - ImageListView.RatingImage.Height) / 2.0f);
-
-                                        for (int i = 1; i <= 5; i++)
-                                        {
-                                            if (rating >= i)
-                                                g.DrawImage(ImageListView.RatingImage, rt.Left + (i - 1) * w, y);
-                                            else
-                                                g.DrawImage(ImageListView.EmptyRatingImage, rt.Left + (i - 1) * w, y);
-                                        }
-                                    }
-                                }
-                                else if (column.Type == ColumnType.Custom)
+                                if (column.Type == ColumnType.Custom)
                                     g.DrawString(item.GetSubItemText(column.Guid), ImageListView.Font, bItemFore, rt, sf);
                                 else
                                     g.DrawString(item.GetSubItemText(column.Type), ImageListView.Font, bItemFore, rt, sf);
@@ -1512,13 +1498,13 @@ namespace Manina.Windows.Forms
                     }
 
                     // File type
-                    string fileType = item.GetSubItemText(ColumnType.FileType);
-                    if (ImageListView.Columns.HasType(ColumnType.FileType) && ImageListView.Columns[ColumnType.FileType].Visible && bounds.Height > 0 && !string.IsNullOrEmpty(fileType))
+                    string fileType = item.GetSubItemText(ColumnType.MediaType);
+                    if (ImageListView.Columns.HasType(ColumnType.MediaType) && ImageListView.Columns[ColumnType.MediaType].Visible && bounds.Height > 0 && !string.IsNullOrEmpty(fileType))
                     {
                         using (SolidBrush bLabel = new SolidBrush(ImageListView.Colors.PaneLabelColor))
                         using (SolidBrush bText = new SolidBrush(ImageListView.Colors.ForeColor))
                         {
-                            int y = Utility.DrawStringPair(g, bounds, ImageListView.Columns[ColumnType.FileType].Text + ": ",
+                            int y = Utility.DrawStringPair(g, bounds, ImageListView.Columns[ColumnType.MediaType].Text + ": ",
                                 fileType, ImageListView.Font, bLabel, bText);
                             bounds.Y += y;
                             bounds.Height -= y;
@@ -1527,20 +1513,12 @@ namespace Manina.Windows.Forms
 
                     // Metatada
                     foreach (ImageListView.ImageListViewColumnHeader column in ImageListView.Columns)
-                    {
-                        if (column.Type == ColumnType.ImageDescription)
-                        {
-                            bounds.Y += 8;
-                            bounds.Height -= 8;
-                        }
+                    {                        
 
                         if (bounds.Height <= 0) break;
 
                         if (column.Visible &&
                             column.Type != ColumnType.Custom &&
-                            column.Type != ColumnType.FileType &&
-                            column.Type != ColumnType.DateAccessed &&
-                            column.Type != ColumnType.FileName &&
                             column.Type != ColumnType.FilePath &&
                             column.Type != ColumnType.Name)
                         {

@@ -426,15 +426,12 @@ namespace Manina.Windows.Forms
                         }
 
                         // Set drag data
-                        List<string> filenames = new List<string>();
+                        List<dynamic> filenames = new List<dynamic>();
                         foreach (ImageListViewItem item in mImageListView.SelectedItems)
                         {
-                            // Get the source image
-                            string sourceFile = item.Adaptor.GetSourceImage(item.VirtualItemKey);
-                            if (!string.IsNullOrEmpty(sourceFile))
-                                filenames.Add(sourceFile);
+                            filenames.Add(item.Tag);
                         }
-                        DataObject data = new DataObject(DataFormats.FileDrop, filenames.ToArray());
+                        DataObject data = new DataObject("EntityBase_List", filenames);
                         DropTarget = null;
                         selfDragging = true;
                         mImageListView.DoDragDrop(data, DragDropEffects.All);

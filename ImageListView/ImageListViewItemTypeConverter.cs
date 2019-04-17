@@ -67,7 +67,7 @@ namespace Manina.Windows.Forms
                             typeof(string), typeof(string), typeof(object)
                         });
                     return new InstanceDescriptor(consInfo, new object[] { 
-                        item.FileName, item.Text, item.Tag
+                        item.Name, item.Text, item.Tag
                     });
                 }
             }

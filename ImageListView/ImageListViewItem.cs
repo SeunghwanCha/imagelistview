@@ -32,6 +32,8 @@ namespace Manina.Windows.Forms
     {
         #region Member Variables
         // Property backing fields
+        private Color mBackColor;
+        private Color mForeColor;
         internal int mIndex;
         private Guid mGuid;
         internal ImageListView mImageListView;
@@ -41,38 +43,23 @@ namespace Manina.Windows.Forms
         private string mText;
         private int mZOrder;
         // File info
-        internal string extension;
-        private DateTime mDateAccessed;
-        private DateTime mDateCreated;
-        private DateTime mDateModified;
-        private string mFileType;
-        private string mFileName;
+        // File info
+        private string mName;
+        private string mMediaType;
+        private long mMediaSize;
+        private float mFPS;
+        private uint mMediaStartTime;
+        private uint mMediaDuration;
+        private string mMediaDurationStr;
         private string mFilePath;
-        private string mFolderName;
-        private long mFileSize;
-        private Size mDimensions;
-        private SizeF mResolution;
-        // Exif tags
-        private string mImageDescription;
-        private string mEquipmentModel;
-        private DateTime mDateTaken;
-        private string mArtist;
-        private string mCopyright;
-        private float mExposureTime;
-        private float mFNumber;
-        private ushort mISOSpeed;
-        private string mUserComment;
-        private ushort mRating;
-        private ushort mStarRating;
-        private string mSoftware;
-        private float mFocalLength;
+        private Size mMediaInfo;
+        private int mUsageCount;
+        internal Image clonedThumbnail;
         // Adaptor
         internal object mVirtualItemKey;
         internal ImageListView.ImageListViewItemAdaptor mAdaptor;
         // Used for custom columns
         private Dictionary<Guid, string> subItems;
-        // Used for cloned items
-        internal Image clonedThumbnail;
         // Group info
         internal string group;
         internal int groupOrder;
@@ -83,6 +70,40 @@ namespace Manina.Windows.Forms
         #endregion
 
         #region Properties
+        [Category("Appearance"), Browsable(true), Description("Gets or sets the foreground color of the item."), DefaultValue(typeof(Color), "WindowText")]
+        public Color ForeColor
+        {
+            get
+            {
+                return mForeColor;
+            }
+            set
+            {
+                if (value != mForeColor)
+                {
+                    mForeColor = value;
+                    if (mImageListView != null)
+                        mImageListView.Refresh();
+                }
+            }
+        }
+        [Category("Appearance"), Browsable(true), Description("Gets or sets the background color of the item."), DefaultValue(typeof(Color), "Transparent")]
+        public Color BackColor
+        {
+            get
+            {
+                return mBackColor;
+            }
+            set
+            {
+                if (value != mBackColor)
+                {
+                    mBackColor = value;
+                    if (mImageListView != null)
+                        mImageListView.Refresh();
+                }
+            }
+        }
         /// <summary>
         /// Gets the cache state of the item thumbnail.
         /// </summary>
@@ -233,32 +254,31 @@ namespace Manina.Windows.Forms
         /// </summary>        
         [Category("File Properties"), Browsable(true), Description("Gets or sets the name of the image file represented by this item.")]
         [Editor(typeof(OpenFileDialogEditor), typeof(UITypeEditor))]
-        public string FileName
+        public string Name
         {
             get
             {
-                return mFileName;
+                return mName;
             }
             set
             {
                 if (string.IsNullOrEmpty(value))
                     throw new ArgumentException("FileName cannot be null");
 
-                if (mFileName != value)
+                if (mName != value)
                 {
-                    mFileName = value;
-                    mVirtualItemKey = mFileName;
+                    mName = value;
+                    mVirtualItemKey = mName;
 
                     if (string.IsNullOrEmpty(mText))
-                        mText = Path.GetFileName(mFileName);
-                    extension = Path.GetExtension(mFileName);
+                        mText = Path.GetFileName(mName);
 
                     isDirty = true;
                     if (mImageListView != null)
                     {
                         mImageListView.thumbnailCache.Remove(mGuid, true);
                         mImageListView.metadataCache.Remove(mGuid);
-                        mImageListView.metadataCache.Add(mGuid, Adaptor, mFileName,
+                        mImageListView.metadataCache.Add(mGuid, Adaptor, mName,
                             (mImageListView.UseWIC == UseWIC.Auto || mImageListView.UseWIC == UseWIC.DetailsOnly));
                         if (mImageListView.IsItemVisible(mGuid))
                             mImageListView.Refresh();
@@ -310,7 +330,7 @@ namespace Manina.Windows.Forms
                 if (mImageListView == null)
                     throw new InvalidOperationException("Owner control is null.");
 
-                string iconPath = PathForShellIcon();
+                string iconPath = null;
                 CacheState state = mImageListView.shellInfoCache.GetCacheState(iconPath);
                 if (state == CacheState.Cached)
                 {
@@ -344,7 +364,7 @@ namespace Manina.Windows.Forms
                 if (mImageListView == null)
                     throw new InvalidOperationException("Owner control is null.");
 
-                string iconPath = PathForShellIcon();
+                string iconPath = null;
                 CacheState state = mImageListView.shellInfoCache.GetCacheState(iconPath);
                 if (state == CacheState.Cached)
                 {
@@ -366,119 +386,26 @@ namespace Manina.Windows.Forms
                 }
             }
         }
-        /// <summary>
-        /// Gets the last access date of the image file represented by this item.
-        /// </summary>
-        [Category("File Properties"), Browsable(true), Description("Gets the last access date of the image file represented by this item.")]
-        public DateTime DateAccessed { get { UpdateFileInfo(); return mDateAccessed; } }
-        /// <summary>
-        /// Gets the creation date of the image file represented by this item.
-        /// </summary>
-        [Category("File Properties"), Browsable(true), Description("Gets the creation date of the image file represented by this item.")]
-        public DateTime DateCreated { get { UpdateFileInfo(); return mDateCreated; } }
-        /// <summary>
-        /// Gets the modification date of the image file represented by this item.
-        /// </summary>
-        [Category("File Properties"), Browsable(true), Description("Gets the modification date of the image file represented by this item.")]
-        public DateTime DateModified { get { UpdateFileInfo(); return mDateModified; } }
-        /// <summary>
-        /// Gets the shell type of the image file represented by this item.
-        /// </summary>
-        [Category("File Properties"), Browsable(true), Description("Gets the shell type of the image file represented by this item.")]
-        public string FileType { get { UpdateFileInfo(); return mFileType; } }
-        /// <summary>
-        /// Gets the path of the image file represented by this item.
-        /// </summary>        
-        [Category("File Properties"), Browsable(true), Description("Gets the path of the image file represented by this item.")]
-        public string FilePath { get { UpdateFileInfo(); return mFilePath; } }
-        /// <summary>
-        /// Gets the name of the folder represented by this item.
-        /// </summary>        
-        [Category("File Properties"), Browsable(true), Description(" Gets the name of the folder represented by this item.")]
-        public string FolderName { get { UpdateFileInfo(); return mFolderName; } }
-        /// <summary>
-        /// Gets file size in bytes.
-        /// </summary>
-        [Category("File Properties"), Browsable(true), Description("Gets file size in bytes.")]
-        public long FileSize { get { UpdateFileInfo(); return mFileSize; } }
-        #endregion
 
-        #region Exif Properties
-        /// <summary>
-        /// Gets image dimensions.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets image dimensions.")]
-        public Size Dimensions { get { UpdateFileInfo(); return mDimensions; } }
-        /// <summary>
-        /// Gets image resolution in pixels per inch.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets image resolution in pixels per inch.")]
-        public SizeF Resolution { get { UpdateFileInfo(); return mResolution; } }
-        /// <summary>
-        /// Gets image description.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets image description.")]
-        public string ImageDescription { get { UpdateFileInfo(); return mImageDescription; } }
-        /// <summary>
-        /// Gets the camera model.
-        /// </summary>
-        [Category("Camera Properties"), Browsable(true), Description("Gets the camera model.")]
-        public string EquipmentModel { get { UpdateFileInfo(); return mEquipmentModel; } }
-        /// <summary>
-        /// Gets the date and time the image was taken.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets the date and time the image was taken.")]
-        public DateTime DateTaken { get { UpdateFileInfo(); return mDateTaken; } }
-        /// <summary>
-        /// Gets the name of the artist.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets the name of the artist.")]
-        public string Artist { get { UpdateFileInfo(); return mArtist; } }
-        /// <summary>
-        /// Gets image copyright information.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets image copyright information.")]
-        public string Copyright { get { UpdateFileInfo(); return mCopyright; } }
-        /// <summary>
-        /// Gets the exposure time in seconds.
-        /// </summary>
-        [Category("Camera Properties"), Browsable(true), Description("Gets the exposure time in seconds.")]
-        public float ExposureTime { get { UpdateFileInfo(); return mExposureTime; } }
-        /// <summary>
-        /// Gets the F number.
-        /// </summary>
-        [Category("Camera Properties"), Browsable(true), Description("Gets the F number.")]
-        public float FNumber { get { UpdateFileInfo(); return mFNumber; } }
-        /// <summary>
-        /// Gets the ISO speed.
-        /// </summary>
-        [Category("Camera Properties"), Browsable(true), Description("Gets the ISO speed.")]
-        public ushort ISOSpeed { get { UpdateFileInfo(); return mISOSpeed; } }
-        /// <summary>
-        /// Gets user comments.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets user comments.")]
-        public string UserComment { get { UpdateFileInfo(); return mUserComment; } }
-        /// <summary>
-        /// Gets rating in percent between 0-99 (Windows specific).
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets rating in percent between 0-99.")]
-        public ushort Rating { get { UpdateFileInfo(); return mRating; } }
-        /// <summary>
-        /// Gets the star rating between 0-5 (Windows specific).
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets the star rating between 0-5.")]
-        public ushort StarRating { get { UpdateFileInfo(); return mStarRating; } }
-        /// <summary>
-        /// Gets the name of the application that created this file.
-        /// </summary>
-        [Category("Image Properties"), Browsable(true), Description("Gets the name of the application that created this file.")]
-        public string Software { get { UpdateFileInfo(); return mSoftware; } }
-        /// <summary>
-        /// Gets focal length of the lens in millimeters.
-        /// </summary>
-        [Category("Camera Properties"), Browsable(true), Description("Gets focal length of the lens in millimeters.")]
-        public float FocalLength { get { UpdateFileInfo(); return mFocalLength; } }
+        [Category("Data"), Browsable(false), Description("Gets the shell type of the image file represented by this item.")]
+        public string MediaType { get { UpdateFileInfo(); return mMediaType; } set { mMediaType = value; } }        
+        [Category("Data"), Browsable(false), Description("Gets the path of the image fie represented by this item.")]
+        public string FilePath { get { UpdateFileInfo(); return mFilePath; } set { mFilePath = value; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public long MediaSize { get { UpdateFileInfo(); return mMediaSize; } set { mMediaSize = value; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public float FPS { get { UpdateFileInfo(); return mFPS; } set { mFPS = value; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public uint MediaStartTime { get { UpdateFileInfo(); return mMediaStartTime; } set { mMediaStartTime = value; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public uint MediaDuration { get { UpdateFileInfo(); return mMediaDuration; } set { mMediaDuration = value; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public string MediaDurationStr { get { mMediaDurationStr = TimeSpan.FromMilliseconds(mMediaDuration).ToString(@"hh\:mm\:ss\.ff"); return mMediaDurationStr; } }
+        [Category("Data"), Browsable(false), Description("Gets file size in bytes.")]
+        public Size MediaInfo { get { UpdateFileInfo(); return mMediaInfo; } set { mMediaInfo = value; } }
+        [Category("Data"), Browsable(false), Description("사용 빈도수.")]
+        public int UsageCount { get { UpdateFileInfo(); return mUsageCount; } set { mUsageCount = value; } }
+
         #endregion
 
         #region Constructors
@@ -487,6 +414,9 @@ namespace Manina.Windows.Forms
         /// </summary>
         public ImageListViewItem()
         {
+            mBackColor = Color.Transparent;
+            mForeColor = SystemColors.WindowText;
+
             mIndex = -1;
             owner = null;
 
@@ -509,35 +439,6 @@ namespace Manina.Windows.Forms
 
             groupOrder = 0;
             group = string.Empty;
-        }
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImageListViewItem"/> class.
-        /// </summary>
-        /// <param name="filename">The image filename representing the item.</param>
-        /// <param name="text">Item text</param>
-        public ImageListViewItem(string filename, string text)
-            : this()
-        {
-            if (File.Exists(filename))
-            {
-                mFileName = filename;
-                extension = Path.GetExtension(filename);
-                if (string.IsNullOrEmpty(text))
-                    mText = Path.GetFileName(filename);
-                else
-                    mText = text;
-            }
-            else if (string.IsNullOrEmpty(text))
-            {
-                mFileName = filename;
-                mText = filename;
-            }
-            else
-            {
-                mFileName = filename;
-                mText = text;
-            }
-            mVirtualItemKey = mFileName;
         }
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageListViewItem"/> class.
@@ -684,118 +585,44 @@ namespace Manina.Windows.Forms
         {
             switch (type)
             {
-                case ColumnType.Custom:
-                    throw new ArgumentException("Column type is ambiguous. You must access custom columns by index.", "type");
+                case ColumnType.UsageCount:
+                    return mUsageCount.ToString();
                 case ColumnType.Name:
-                    return Text;
-                case ColumnType.FileName:
-                    return FileName;
-                case ColumnType.DateAccessed:
-                    if (mDateAccessed == DateTime.MinValue)
-                        return "";
-                    else
-                        return mDateAccessed.ToString("g");
-                case ColumnType.DateCreated:
-                    if (mDateCreated == DateTime.MinValue)
-                        return "";
-                    else
-                        return mDateCreated.ToString("g");
-                case ColumnType.DateModified:
-                    if (mDateModified == DateTime.MinValue)
-                        return "";
-                    else
-                        return mDateModified.ToString("g");
+                    return Name;
                 case ColumnType.FilePath:
-                    return mFilePath;
-                case ColumnType.FolderName:
-                    return mFolderName;
-                case ColumnType.FileSize:
-                    if (mFileSize == 0)
+                    return FilePath;
+                case ColumnType.MediaSize:
+                    if (MediaSize == 0)
                         return "";
                     else
-                        return Utility.FormatSize(mFileSize);
-                case ColumnType.FileType:
-                    if (!string.IsNullOrEmpty(mFileType))
-                        return mFileType;
-                    if (mImageListView != null)
-                    {
-                        if (!string.IsNullOrEmpty(extension))
-                        {
-                            CacheState state = mImageListView.shellInfoCache.GetCacheState(extension);
-                            if (state == CacheState.Cached)
-                            {
-                                mFileType = mImageListView.shellInfoCache.GetFileType(extension);
-                                return mFileType;
-                            }
-                            else if (state == CacheState.Error)
-                            {
-                                mImageListView.shellInfoCache.Remove(extension);
-                                mImageListView.shellInfoCache.Add(extension);
-                                return "";
-                            }
-                            else
-                            {
-                                mImageListView.shellInfoCache.Add(extension);
-                                return "";
-                            }
-                        }
-                        return "";
-                    }
-                    else
-                        return "";
-                case ColumnType.Dimensions:
-                    if (mDimensions == Size.Empty)
+                        return Utility.FormatSize(MediaSize);
+                case ColumnType.MediaType:
+                    return MediaType;
+                case ColumnType.MediaInfo:
+                    if (MediaInfo == SizeF.Empty)
                         return "";
                     else
-                        return string.Format("{0} x {1}", mDimensions.Width, mDimensions.Height);
-                case ColumnType.Resolution:
-                    if (mResolution == SizeF.Empty)
+                        return string.Format("{0} x {1}", MediaInfo.Width, MediaInfo.Height);
+                case ColumnType.FPS:
+                    if (FPS == 0.0f)
                         return "";
                     else
-                        return string.Format("{0} x {1}", mResolution.Width, mResolution.Height);
-                case ColumnType.ImageDescription:
-                    return mImageDescription;
-                case ColumnType.EquipmentModel:
-                    return mEquipmentModel;
-                case ColumnType.DateTaken:
-                    if (mDateTaken == DateTime.MinValue)
+                        return FPS.ToString("f2");
+                case ColumnType.MediaStartTime:
+                    if (MediaStartTime == 0)
                         return "";
                     else
-                        return mDateTaken.ToString("g");
-                case ColumnType.Artist:
-                    return mArtist;
-                case ColumnType.Copyright:
-                    return mCopyright;
-                case ColumnType.ExposureTime:
-                    if (mExposureTime < double.Epsilon)
-                        return "";
-                    else if (mExposureTime >= 1.0f)
-                        return mExposureTime.ToString("f1");
-                    else
-                        return string.Format("1/{0:f0}", (1.0f / mExposureTime));
-                case ColumnType.FNumber:
-                    if (mFNumber < double.Epsilon)
+                        return MediaStartTime.ToString();
+                case ColumnType.MediaDuration:
+                    if (MediaDuration == 0)
                         return "";
                     else
-                        return mFNumber.ToString("f1");
-                case ColumnType.ISOSpeed:
-                    if (mISOSpeed == 0)
+                        return MediaDuration.ToString();
+                case ColumnType.MediaDurationStr:
+                    if (MediaDuration == 0)
                         return "";
                     else
-                        return mISOSpeed.ToString();
-                case ColumnType.UserComment:
-                    return mUserComment;
-                case ColumnType.Rating:
-                    if (mRating == 0)
-                        return "";
-                    else return mRating.ToString();
-                case ColumnType.Software:
-                    return mSoftware;
-                case ColumnType.FocalLength:
-                    if (mFocalLength < double.Epsilon)
-                        return "";
-                    else
-                        return mFocalLength.ToString("f1");
+                        return MediaDurationStr;
                 default:
                     throw new ArgumentException("Unknown column type", "type");
             }
@@ -810,40 +637,14 @@ namespace Manina.Windows.Forms
         {
             if (!string.IsNullOrEmpty(mText))
                 return mText;
-            else if (!string.IsNullOrEmpty(mFileName))
-                return Path.GetFileName(mFileName);
+            else if (!string.IsNullOrEmpty(mFilePath))
+                return Path.GetFileName(mFilePath);
             else
                 return string.Format("Item {0}", mIndex);
         }
         #endregion
 
-        #region Helper Methods
-        /// <summary>
-        /// Gets the simpel rating (0-5)
-        /// </summary>
-        /// <returns></returns>
-        internal ushort GetSimpleRating()
-        {
-            return mStarRating;
-        }
-        /// <summary>
-        /// Sets the simple rating (0-5) from rating (0-99).
-        /// </summary>
-        private void UpdateRating()
-        {
-            if (mRating >= 1 && mRating <= 12)
-                mStarRating = 1;
-            else if (mRating >= 13 && mRating <= 37)
-                mStarRating = 2;
-            else if (mRating >= 38 && mRating <= 62)
-                mStarRating = 3;
-            else if (mRating >= 63 && mRating <= 87)
-                mStarRating = 4;
-            else if (mRating >= 88 && mRating <= 99)
-                mStarRating = 5;
-            else
-                mStarRating = 0;
-        }
+        #region Helper Methods        
         /// <summary>
         /// Gets an image from the cache manager.
         /// If the thumbnail image is not cached, it will be 
@@ -858,7 +659,7 @@ namespace Manina.Windows.Forms
             if (mImageListView == null)
                 throw new InvalidOperationException("Owner control is null.");
 
-            string iconPath = PathForShellIcon();
+            string iconPath = null;
 
             if (imageType == CachedImageType.SmallIcon || imageType == CachedImageType.LargeIcon)
             {
@@ -988,12 +789,6 @@ namespace Manina.Windows.Forms
         private void UpdateFileInfo()
         {
             if (!isDirty) return;
-
-            if (mImageListView != null)
-            {
-                UpdateDetailsInternal(Adaptor.GetDetails(mVirtualItemKey,
-                    (mImageListView.UseWIC == UseWIC.Auto || mImageListView.UseWIC == UseWIC.DetailsOnly)));
-            }
         }
         /// <summary>
         /// Invoked by the worker thread to update item details.
@@ -1008,65 +803,32 @@ namespace Manina.Windows.Forms
             {
                 switch (item.Item1)
                 {
-                    case ColumnType.DateAccessed:
-                        mDateAccessed = (DateTime)item.Item3;
+                    case ColumnType.UsageCount:
+                        mUsageCount = (int)item.Item3;
                         break;
-                    case ColumnType.DateCreated:
-                        mDateCreated = (DateTime)item.Item3;
+                    case ColumnType.Name:
+                        mName = (string)item.Item3;
                         break;
-                    case ColumnType.DateModified:
-                        mDateModified = (DateTime)item.Item3;
+                    case ColumnType.MediaType:
+                        mMediaType = (string)item.Item3;
                         break;
-                    case ColumnType.FileSize:
-                        mFileSize = (long)item.Item3;
+                    case ColumnType.MediaDuration:
+                        mMediaDuration = (uint)item.Item3;
                         break;
                     case ColumnType.FilePath:
                         mFilePath = (string)item.Item3;
                         break;
-                    case ColumnType.FolderName:
-                        mFolderName = (string)item.Item3;
+                    case ColumnType.MediaDurationStr:
+                        mMediaDurationStr = (string)item.Item3;
                         break;
-                    case ColumnType.Dimensions:
-                        mDimensions = (Size)item.Item3;
+                    case ColumnType.FPS:
+                        mFPS = (float)item.Item3;
                         break;
-                    case ColumnType.Resolution:
-                        mResolution = (SizeF)item.Item3;
+                    case ColumnType.MediaInfo:
+                        mMediaInfo = (Size)item.Item3;
                         break;
-                    case ColumnType.ImageDescription:
-                        mImageDescription = (string)item.Item3;
-                        break;
-                    case ColumnType.EquipmentModel:
-                        mEquipmentModel = (string)item.Item3;
-                        break;
-                    case ColumnType.DateTaken:
-                        mDateTaken = (DateTime)item.Item3;
-                        break;
-                    case ColumnType.Artist:
-                        mArtist = (string)item.Item3;
-                        break;
-                    case ColumnType.Copyright:
-                        mCopyright = (string)item.Item3;
-                        break;
-                    case ColumnType.ExposureTime:
-                        mExposureTime = (float)item.Item3;
-                        break;
-                    case ColumnType.FNumber:
-                        mFNumber = (float)item.Item3;
-                        break;
-                    case ColumnType.ISOSpeed:
-                        mISOSpeed = (ushort)item.Item3;
-                        break;
-                    case ColumnType.UserComment:
-                        mUserComment = (string)item.Item3;
-                        break;
-                    case ColumnType.Rating:
-                        mRating = (ushort)item.Item3;
-                        break;
-                    case ColumnType.Software:
-                        mSoftware = (string)item.Item3;
-                        break;
-                    case ColumnType.FocalLength:
-                        mFocalLength = (float)item.Item3;
+                    case ColumnType.MediaSize:
+                        mMediaSize = (long)item.Item3;
                         break;
                     case ColumnType.Custom:
                         string label = item.Item2;
@@ -1092,8 +854,6 @@ namespace Manina.Windows.Forms
                 }
             }
 
-            UpdateRating();
-
             isDirty = false;
         }
         /// <summary>
@@ -1113,77 +873,20 @@ namespace Manina.Windows.Forms
 
             switch (column.Type)
             {
-                case ColumnType.DateAccessed:
-                    groupInfo = Utility.GroupTextDate(DateAccessed);
-                    break;
-                case ColumnType.DateCreated:
-                    groupInfo = Utility.GroupTextDate(DateCreated);
-                    break;
-                case ColumnType.DateModified:
-                    groupInfo = Utility.GroupTextDate(DateModified);
-                    break;
-                case ColumnType.Dimensions:
-                    groupInfo = Utility.GroupTextDimension(Dimensions);
-                    break;
-                case ColumnType.FileName:
-                    groupInfo = Utility.GroupTextAlpha(FileName);
+                case ColumnType.Name:
+                    groupInfo = Utility.GroupTextAlpha(Name);
                     break;
                 case ColumnType.FilePath:
                     groupInfo = Utility.GroupTextAlpha(FilePath);
                     break;
-                case ColumnType.FolderName:
-                    groupInfo = Utility.GroupTextAlpha(FolderName);
-                    break;
-                case ColumnType.FileSize:
-                    groupInfo = Utility.GroupTextFileSize(FileSize);
-                    break;
-                case ColumnType.FileType:
-                    groupInfo = Utility.GroupTextAlpha(FileType);
-                    break;
-                case ColumnType.Name:
-                    groupInfo = Utility.GroupTextAlpha(Text);
-                    break;
-                case ColumnType.ImageDescription:
-                    groupInfo = Utility.GroupTextAlpha(ImageDescription);
-                    break;
-                case ColumnType.EquipmentModel:
-                    groupInfo = Utility.GroupTextAlpha(EquipmentModel);
-                    break;
-                case ColumnType.DateTaken:
-                    groupInfo = Utility.GroupTextDate(DateTaken);
-                    break;
-                case ColumnType.Artist:
-                    groupInfo = Utility.GroupTextAlpha(Artist);
-                    break;
-                case ColumnType.Copyright:
-                    groupInfo = Utility.GroupTextAlpha(Copyright);
-                    break;
-                case ColumnType.UserComment:
-                    groupInfo = Utility.GroupTextAlpha(UserComment);
-                    break;
-                case ColumnType.Software:
-                    groupInfo = Utility.GroupTextAlpha(Software);
-                    break;
+                case ColumnType.MediaType:
+                    groupInfo = Utility.GroupTextAlpha(mMediaType);
+                    break;                
                 case ColumnType.Custom:
                     groupInfo = Utility.GroupTextAlpha(GetSubItemText(column.Guid));
                     break;
-                case ColumnType.ISOSpeed:
-                    groupInfo = new Utility.Tuple<int, string>(ISOSpeed, ISOSpeed.ToString());
-                    break;
-                case ColumnType.Rating:
-                    groupInfo = new Utility.Tuple<int, string>(Rating / 5, (Rating / 5).ToString());
-                    break;
-                case ColumnType.FocalLength:
-                    groupInfo = new Utility.Tuple<int, string>((int)FocalLength, FocalLength.ToString());
-                    break;
-                case ColumnType.ExposureTime:
-                    groupInfo = new Utility.Tuple<int, string>((int)ExposureTime, ExposureTime.ToString());
-                    break;
-                case ColumnType.FNumber:
-                    groupInfo = new Utility.Tuple<int, string>((int)FNumber, FNumber.ToString());
-                    break;
-                case ColumnType.Resolution:
-                    groupInfo = new Utility.Tuple<int, string>((int)Resolution.Width, Resolution.Width.ToString());
+                case ColumnType.MediaInfo:
+                    groupInfo = new Utility.Tuple<int, string>((int)mMediaInfo.Width, mMediaInfo.Width.ToString());
                     break;
                 default:
                     groupInfo = new Utility.Tuple<int, string>(0, "Unknown");
@@ -1192,20 +895,7 @@ namespace Manina.Windows.Forms
 
             groupOrder = groupInfo.Item1;
             group = groupInfo.Item2;
-        }
-        /// <summary>
-        /// Returns a path string to be used for extracting the shell icon
-        /// of the item. Returns the filename for icon files and executables,
-        /// file extension for other files.
-        /// </summary>
-        private string PathForShellIcon()
-        {
-            if (mImageListView != null && mImageListView.ShellIconFromFileContent && 
-                (string.Compare(extension, ".ico", StringComparison.OrdinalIgnoreCase) == 0 || string.Compare(extension, ".exe", StringComparison.OrdinalIgnoreCase) == 0))
-                return mFileName;
-            else
-                return extension;
-        }
+        }        
         #endregion
 
         #region ICloneable Members
@@ -1222,33 +912,14 @@ namespace Manina.Windows.Forms
             item.mText = mText;
 
             // File info
-            item.extension = extension;
-            item.mDateAccessed = mDateAccessed;
-            item.mDateCreated = mDateCreated;
-            item.mDateModified = mDateModified;
-            item.mFileType = mFileType;
-            item.mFileName = mFileName;
+            item.Name = mName;
+            item.FilePath = mFilePath;
+            item.FPS = mFPS;
+            item.MediaDuration = mMediaDuration;
+            item.MediaType = mMediaType;
+            item.MediaSize = mMediaSize;
             item.mFilePath = mFilePath;
-            item.mFileSize = mFileSize;
-
-            // Image info
-            item.mDimensions = mDimensions;
-            item.mResolution = mResolution;
-
-            // Exif tags
-            item.mImageDescription = mImageDescription;
-            item.mEquipmentModel = mEquipmentModel;
-            item.mDateTaken = mDateTaken;
-            item.mArtist = mArtist;
-            item.mCopyright = mCopyright;
-            item.mExposureTime = mExposureTime;
-            item.mFNumber = mFNumber;
-            item.mISOSpeed = mISOSpeed;
-            item.mUserComment = mUserComment;
-            item.mRating = mRating;
-            item.mStarRating = mStarRating;
-            item.mSoftware = mSoftware;
-            item.mFocalLength = mFocalLength;
+            item.MediaInfo = mMediaInfo;
 
             // Virtual item properties
             item.mAdaptor = mAdaptor;

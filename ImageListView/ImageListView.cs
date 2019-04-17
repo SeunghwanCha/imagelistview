@@ -22,7 +22,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Resources;
 using System.Reflection;
-using ComponentFactory.Krypton.Toolkit;
 
 namespace Manina.Windows.Forms
 {
@@ -143,11 +142,6 @@ namespace Manina.Windows.Forms
         private ResourceManager resources;
 		
 		/// jdhsoftware
-        internal IPalette _palette;
-        internal PaletteRedirect _paletteRedirect;
-        internal PaletteBackInheritRedirect _paletteBack;
-        internal PaletteBorderInheritRedirect _paletteBorder;
-        internal PaletteContentInheritRedirect _paletteContent;
         internal IDisposable _mementoContent;
         internal IDisposable _mementoBack1;
         internal IDisposable _mementoBack2;
@@ -1032,7 +1026,7 @@ namespace Manina.Windows.Forms
             AllowCheckBoxClick = true;
             AllowColumnClick = true;
             AllowColumnResize = true;
-            AllowDrag = false;
+            AllowDrag = true;
             AllowDuplicateFileNames = false;
             AllowPaneResize = true;
             mBorderStyle = BorderStyle.Fixed3D;
@@ -1054,10 +1048,10 @@ namespace Manina.Windows.Forms
             mRetryOnError = true;
             mSelectedItems = new ImageListViewSelectedItemCollection(this);
             mCheckedItems = new ImageListViewCheckedItemCollection(this);
-            mSortColumn = 0;
-            mGroupColumn = 0;
-            mSortOrder = SortOrder.None;
-            mGroupOrder = SortOrder.None;
+            mSortColumn = 1;
+            mGroupColumn = 2;
+            mSortOrder = SortOrder.Ascending;
+            mGroupOrder = SortOrder.Ascending;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Opaque | ControlStyles.Selectable | ControlStyles.UserMouse, true);
             ScrollBars = true;
             ShellIconFallback = true;
@@ -1109,57 +1103,8 @@ namespace Manina.Windows.Forms
             metadataCache = new ImageListViewCacheMetadata(this);
 
             disposed = false;
-
-            // Cache the current global palette setting
-            _palette = KryptonManager.CurrentGlobalPalette;
-
-            // Hook into palette events
-            if (_palette != null)
-                _palette.PalettePaint += new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
-
-            // We want to be notified whenever the global palette changes
-            KryptonManager.GlobalPaletteChanged += new EventHandler(OnGlobalPaletteChanged);
-
-            // Create redirection object to the base palette
-            _paletteRedirect = new PaletteRedirect(_palette);
-
-            // Create accessor objects for the back, border and content
-            _paletteBack = new PaletteBackInheritRedirect(_paletteRedirect);
-            _paletteBorder = new PaletteBorderInheritRedirect(_paletteRedirect);
-            _paletteContent = new PaletteContentInheritRedirect(_paletteRedirect);
-
-            this.Font = _palette.GetContentShortTextFont(PaletteContentStyle.ButtonStandalone, PaletteState.Normal);
-        }
-
-        private void OnGlobalPaletteChanged(object sender, EventArgs e)
-        {
-            // Unhook events from old palette
-            if (_palette != null)
-                _palette.PalettePaint -= new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
-
-            // Cache the new IPalette that is the global palette
-            _palette = KryptonManager.CurrentGlobalPalette;
-            _paletteRedirect.Target = _palette;
-
-            // Hook into events for the new palette
-            if (_palette != null)
-                _palette.PalettePaint += new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
-
-            // Change of palette means we should repaint to show any changes
-            Invalidate();
         }
         #endregion
-
-        /// <summary>
-        /// Called when [palette paint].
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">The <see cref="ComponentFactory.Krypton.Toolkit.PaletteLayoutEventArgs" /> instance containing the event data.</param>
-        public void OnPalettePaint(object sender, PaletteLayoutEventArgs e)
-        {
-            // Palette indicates we might need to repaint, so lets do it
-            Invalidate();
-        }
 
         #region Select/Check
         /// <summary>
@@ -2068,17 +2013,7 @@ namespace Manina.Windows.Forms
                     {
                         _mementoBack2.Dispose();
                         _mementoBack2 = null;
-                    }
-
-                    // Unhook from the palette events
-                    if (_palette != null)
-                    {
-                        _palette.PalettePaint -= new EventHandler<PaletteLayoutEventArgs>(OnPalettePaint);
-                        _palette = null;
-                    }
-
-                    // Unhook from the static events, otherwise we cannot be garbage collected
-                    KryptonManager.GlobalPaletteChanged -= new EventHandler(OnGlobalPaletteChanged);
+                    }                   
                 }
 
                 disposed = true;

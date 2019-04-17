@@ -234,10 +234,7 @@ namespace Manina.Windows.Forms
 			if (!OnCanContinueProcessing (request)) {
 				e.Cancel = true;
 				return;
-			}
-			
-			// Get item details
-			e.Result = request.Adaptor.GetDetails (request.VirtualItemKey, request.UseWIC);
+			}			
 		}
 		#endregion
 
